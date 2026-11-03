@@ -103,8 +103,7 @@
           <div class="poi-list">
             <div class="poi-item" v-for="p in pois" :key="p.id" @click="focusPoi(p)">
               <div class="poi-thumb">
-                <img v-if="imgFor(p.id)" :src="imgFor(p.id)" :alt="p.name" loading="lazy" @error="onImgError(p.id)" />
-                <span v-else class="poi-emoji">{{ iconFor(p.category) }}</span>
+                <img :src="imgFor(p.id)" :alt="p.name" loading="lazy" @error="onImgError(p.id)" />
               </div>
               <div style="flex:1;min-width:0">
                 <div class="row spread">

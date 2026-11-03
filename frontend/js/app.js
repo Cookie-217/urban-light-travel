@@ -34,7 +34,7 @@
       })
       .catch(() => { WIKI_CACHE[poi.id] = null; });
   }
-  function imgFor(id) { return imgOf[id] || ''; }
+  function imgFor(id) { return imgOf[id] || ('https://picsum.photos/seed/utpoi' + id + '/400/300'); }
   async function apiFetch(path, opts) {
     opts = opts || {};
     const res = await fetch(API + path, Object.assign({
@@ -95,13 +95,13 @@
   function iconFor(cat) {
     return ({ park: '🌳', food: '🍜', culture: '🏛️', shopping: '🛍️', nature: '⛰️', night: '🌃', transit: '🚉' })[cat] || '📍';
   }
-  function makeIcon(cat) {
+  function makeIcon(cat, imgUrl) {
     const color = ({ park: '#0fae8e', food: '#ff6b5e', culture: '#8b5cf6', shopping: '#f5a623', nature: '#2bb3c0', night: '#6a7bff', transit: '#94a3b8' })[cat] || '#0fae8e';
-    const emo = iconFor(cat);
+    const src = imgUrl || ('https://picsum.photos/seed/utpoi' + cat + '/60/60');
     return L.divIcon({
       className: 'poi-pin',
-      html: '<div style="width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:' + color + ';box-shadow:0 3px 8px rgba(0,0,0,.35);display:grid;place-items:center;border:2px solid #fff"><span style="transform:rotate(45deg);font-size:15px">' + emo + '</span></div>',
-      iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -28]
+      html: '<div style="width:34px;height:34px;border-radius:50%;overflow:hidden;border:3px solid ' + color + ';box-shadow:0 3px 8px rgba(0,0,0,.35);background:#fff"><img src="' + src + '" style="width:100%;height:100%;object-fit:cover" onerror="this.parentNode.style.background=\'' + color + '\';this.style.display=\'none\'"></div>',
+      iconSize: [34, 34], iconAnchor: [17, 34], popupAnchor: [0, -30]
     });
   }
   function initMap(elId, center, zoom) {
@@ -113,9 +113,8 @@
   function renderPoiMarkers(map, pois, onPick) {
     const group = L.featureGroup().addTo(map);
     pois.forEach(p => {
-      const mk = L.marker([p.lat, p.lng], { icon: makeIcon(p.category) }).addTo(group);
-      const img = WIKI_CACHE[p.id] && typeof WIKI_CACHE[p.id] === 'string'
-        ? '<img src="' + WIKI_CACHE[p.id] + '" style="width:100%;height:120px;object-fit:cover;border-radius:8px;margin:6px 0" onerror="this.style.display=\'none\'">' : '';
+      const mk = L.marker([p.lat, p.lng], { icon: makeIcon(p.category, imgFor(p.id)) }).addTo(group);
+      const img = '<img src="' + imgFor(p.id) + '" style="width:100%;height:130px;object-fit:cover;border-radius:8px;margin:6px 0" onerror="this.style.display=\'none\'">';
       mk.bindPopup('<div style="width:200px"><b>' + p.name + '</b><br><span style="color:#0b8f76;font-weight:600">' + (DEMO.CAT_NAME[p.category] || p.category) + '</span> · ★' + p.rating + img + '<div style="font-size:12px;color:#8aa0a8;margin-top:4px">' + (p.address || '') + '</div></div>');
       if (onPick) mk.on('click', () => onPick(p));
     });
@@ -186,7 +185,7 @@
       },
       focusPoi(p) { if (this.map) { this.map.setView([p.lat, p.lng], 15); } },
       catName, modeName, iconFor, imgFor,
-      onImgError(id) { imgOf[id] = ''; },
+      onImgError(id) { const f = 'https://picsum.photos/seed/utpoi' + id + '/400/300'; if (imgOf[id] !== f) imgOf[id] = f; },
       isFav(poiId) { return isFavPoi(poiId); },
       toggleFav(p) { toggleFavPoi(p); },
       go(v) { store.view = v; }
