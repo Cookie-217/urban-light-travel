@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>轻出行 · 城市轻出行路线推荐系统</title>
+  <meta name="description" content="基于 Java 的城市轻出行路线推荐系统：多模式出行、地图可视化、AI 智能体、天气感知推荐。" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚲</text></svg>" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- 初始加载占位 -->
+    <div style="min-height:100vh;display:grid;place-items:center;color:#5b6b73;font-size:14px">正在加载轻出行应用…</div>
+  </div>
+
+  <!-- ============ 根布局 ============ -->
+  <script type="text/x-template" id="tpl-root">
+    <div>
+      <header class="topnav">
+        <div class="brand">
+          <div class="logo">🚲</div>
+          <div>轻出行<small>Urban Light Travel</small></div>
+        </div>
+        <nav class="nav-links">
+          <a :class="{active: store.view==='discover'}" @click="go('discover')"><span class="ico">🗺️</span>发现</a>
+          <a :class="{active: store.view==='planner'}" @click="go('planner')"><span class="ico">🧭</span>规划</a>
+          <a :class="{active: store.view==='ai'}" @click="go('ai')"><span class="ico">🤖</span>助手</a>
+          <a :class="{active: store.view==='favorites'}" @click="go('favorites')"><span class="ico">❤️</span>收藏</a>
+          <a v-if="store.user" :class="{active: store.view==='profile'}" @click="go('profile')"><span class="ico">👤</span>我</a>
+        </nav>
+        <div class="nav-spacer"></div>
+        <div class="nav-user" v-if="store.user">
+          <span class="uname soft">{{store.user.username}}</span>
+          <div class="avatar">{{initial}}</div>
+          <button class="btn btn-ghost btn-sm" @click="logout">退出</button>
+        </div>
+        <button class="btn btn-primary btn-sm" v-else @click="go('login')">登录 / 注册</button>
+      </header>
+
+      <main class="app-shell">
+        <div class="banner info" v-if="store.demoMode">
+          🧪 <b>演示模式</b>：未连接到后端，当前使用内置示例数据与离线推荐 / AI 逻辑。部署后端并通过 <code>?api=</code> 参数连接即可启用完整功能（真实账号、云收藏、大模型助手）。
+        </div>
+        <component :is="store.view"></component>
+      </main>
+
+      <footer class="footer">
+        基于 Java 的城市轻出行路线推荐系统 · Spring Boot + Vue 3 · 前后端分离 · 响应式适配<br/>
+        多模式出行推荐 · 地图可视化 · AI 智能体 · 天气感知 · MIT License
+      </footer>
+    </div>
+  </script>
+
+  <!-- ============ 登录 / 注册 ============ -->
+  <script type="text/x-template" id="tpl-login">
+    <div class="auth-wrap">
+      <div class="card auth-card">
+        <div class="auth-tabs">
+          <button :class="{on: tab==='login'}" @click="tab='login'">登录</button>
+          <button :class="{on: tab==='register'}" @click="tab='register'">注册</button>
+        </div>
+        <h2>{{ tab==='login' ? '欢迎回来' : '创建账号' }}</h2>
+        <p class="soft" style="margin-top:4px">{{ tab==='login' ? '登录以保存你的路线与收藏' : '开启你的轻出行助手' }}</p>
+        <form @submit.prevent="submit">
+          <div class="field"><label>用户名</label><input class="input" v-model="form.username" placeholder="请输入用户名" required></div>
+          <div class="field"><label>密码</label><input class="input" type="password" v-model="form.password" :placeholder="tab==='register' ? '至少6位' : '请输入密码'" required></div>
+          <div class="field" v-if="tab==='register'"><label>邮箱（可选）</label><input class="input" v-model="form.email" placeholder="you@example.com"></div>
+          <button class="btn btn-primary btn-block" :disabled="loading">{{ loading ? '处理中…' : (tab==='login' ? '登录' : '注册并登录') }}</button>
+        </form>
+        <div class="banner" v-if="error" style="margin-top:14px">{{ error }}</div>
+        <div class="demo-hint">
+          演示账号：<b>admin / admin123</b> 或 <b>demo / demo123</b>（连接后端后生效）<br/>
+          未连接后端也可直接输入任意用户名「登录」体验演示模式
+        </div>
+      </div>
+    </div>
+  </script>
+
+  <!-- ============ 发现 / 地图 ============ -->
+  <script type="text/x-template" id="tpl-discover">
+    <div>
+      <section class="hero">
+        <h1>用更轻盈的方式，遇见城市</h1>
+        <p>基于你的时间、兴趣与出行方式，智能推荐城市轻出行路线。融合实时天气、距离、评分与花费，让每一次散步、骑行、转乘都恰到好处。</p>
+        <div class="pills">
+          <span class="pill">🚲 多模式出行</span><span class="pill">🗺️ 地图可视化</span>
+          <span class="pill">🤖 AI 智能体</span><span class="pill">🌤️ 天气感知</span>
+        </div>
+      </section>
+
+      <div class="discover-grid" style="margin-top:18px">
+        <div class="map-wrap card" style="padding:12px"><div id="map"></div></div>
+        <div>
+          <div class="row spread" style="margin-bottom:10px">
+            <strong>兴趣点</strong>
+            <select class="select" style="width:auto" v-model="city" @change="load">
+              <option value="">全部城市</option>
+              <option v-for="c in cities" :value="c">{{ c }}</option>
+            </select>
+          </div>
+          <div class="poi-list">
+            <div class="poi-item" v-for="p in pois" :key="p.id" @click="focusPoi(p)">
+              <div class="poi-thumb">{{ iconFor(p.category) }}</div>
+              <div style="flex:1">
+                <div class="row spread">
+                  <span class="poi-name">{{ p.name }}</span>
+                  <button class="fav-btn" :class="{on: isFav(p.id)}" @click.stop="toggleFav(p)">{{ isFav(p.id) ? '❤️' : '🤍' }}</button>
+                </div>
+                <div class="poi-meta"><span class="poi-cat">{{ catName(p.category) }}</span> · <span class="stars">★ {{ p.rating }}</span> · {{ p.city }}</div>
+                <div class="poi-meta">{{ p.tags }}</div>
+              </div>
+            </div>
+            <div class="empty" v-if="!pois.length">暂无数据</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </script>
+
+  <!-- ============ 路线规划 ============ -->
+  <script type="text/x-template" id="tpl-planner">
+    <div>
+      <div class="section-title"><span class="dot"></span>路线规划</div>
+      <div class="discover-grid">
+        <div class="map-wrap card" style="padding:12px"><div id="plan-map"></div></div>
+        <div class="card">
+          <div class="field"><label>城市</label>
+            <select class="select" v-model="form.city" @change="onCity">
+              <option value="">选择城市（默认杭州）</option>
+              <option v-for="c in cities" :value="c">{{ c }}</option>
+            </select>
+          </div>
+          <div class="field"><label>起点（点击左侧地图可修改，默认市中心）</label>
+            <input class="input" :value="originText" readonly placeholder="在地图上点击选择起点">
+          </div>
+          <div class="field"><label>出行方式</label>
+            <div class="seg">
+              <span class="tag" v-for="m in modes" :class="{on: form.transportMode===m.v}" @click="form.transportMode=m.v">{{ m.t }}</span>
+            </div>
+          </div>
+          <div class="field"><label>时间预算：{{ form.timeBudgetHours }} 小时</label>
+            <input type="range" min="1" max="12" step="0.5" v-model.number="form.timeBudgetHours" style="width:100%">
+          </div>
+          <div class="field"><label>兴趣偏好（可多选）</label>
+            <div class="seg">
+              <span class="tag" v-for="c in cats" :class="{on: form.interests.includes(c.v)}" @click="toggleCat(c.v)">{{ c.t }}</span>
+            </div>
+          </div>
+          <div class="field"><label>预算上限（元，0 = 不限）</label>
+            <input class="input" type="number" min="0" v-model.number="form.maxBudget" placeholder="不限">
+          </div>
+          <label style="display:flex;gap:8px;align-items:center;font-size:13px;color:var(--text-soft);margin-bottom:14px">
+            <input type="checkbox" v-model="form.useWeather"> 综合考虑实时天气（雨天优先室内）
+          </label>
+          <button class="btn btn-primary btn-block" :disabled="loading" @click="plan">{{ loading ? '规划中…' : '🧭 生成路线方案' }}</button>
+          <div class="banner" v-if="error" style="margin-top:12px">{{ error }}</div>
+        </div>
+      </div>
+
+      <div v-if="plan" style="margin-top:18px">
+        <div class="plan-summary">{{ plan.summary }}</div>
+        <div class="plan-stats">
+          <div class="stat"><b>{{ plan.steps.length }}</b><span>站点数</span></div>
+          <div class="stat"><b>{{ plan.totalDistanceKm }}</b><span>总距离 km</span></div>
+          <div class="stat"><b>{{ plan.totalDurationMin }}</b><span>总时长 分</span></div>
+          <div class="stat"><b>¥{{ Math.round(plan.totalCost) }}</b><span>预计花费</span></div>
+        </div>
+        <div class="banner info" v-if="plan.weatherNote">{{ plan.weatherNote }}</div>
+        <div class="card">
+          <div class="step" v-for="(s,i) in plan.steps" :key="i">
+            <div class="step-num">{{ i+1 }}</div>
+            <div class="step-body">
+              <div class="step-title">{{ s.poi.name }} <span class="tag cat">{{ modeName(s.mode) }}</span></div>
+              <div class="step-sub">{{ catName(s.poi.category) }} · 距上站 {{ s.distanceFromPrevKm }}km · 约 {{ s.durationMin }} 分钟 · ¥{{ Math.round(s.cost) }}</div>
+              <div class="step-sub soft">{{ s.poi.address }}</div>
+            </div>
+            <button class="btn btn-ghost btn-sm" v-if="store.user" @click="saveStep(s)">收藏</button>
+          </div>
+          <div class="empty" v-if="!plan.steps.length">没有合适的路线，试试放宽条件。</div>
+        </div>
+        <button class="btn btn-accent btn-block" v-if="store.user && plan.steps.length" style="margin-top:14px" @click="savePlan">💾 保存整套路线到「我的行程」</button>
+      </div>
+    </div>
+  </script>
+
+  <!-- ============ AI 助手 ============ -->
+  <script type="text/x-template" id="tpl-ai">
+    <div class="chat-shell">
+      <div class="chat-box">
+        <div class="chat-head">
+          <div class="bot">🤖</div>
+          <div>
+            <div style="font-weight:700">轻出行 AI 助手</div>
+            <div class="muted" style="font-size:12px">{{ llm ? '大模型已接入 · 自然语言对话' : '离线规则模式 · 输入城市+时长+兴趣试试' }}</div>
+          </div>
+        </div>
+        <div class="chat-log" ref="log">
+          <div class="msg" v-for="(m,i) in messages" :key="i" :class="m.role">
+            {{ m.text }}
+            <div class="plan-card" v-if="m.plan && m.plan.steps.length">
+              <b>📍 推荐路线</b>
+              <div v-for="(s,j) in m.plan.steps" :key="j">· {{ s.poi.name }}（{{ modeName(s.mode) }}，{{ s.durationMin }} 分，¥{{ Math.round(s.cost) }}）</div>
+            </div>
+          </div>
+          <div class="msg bot" v-if="thinking">正在思考…</div>
+        </div>
+        <div class="suggest">
+          <span class="tag" v-for="q in quick" :key="q" @click="send(q)">{{ q }}</span>
+        </div>
+        <div class="chat-input">
+          <input class="input" v-model="input" @keyup.enter="send()" placeholder="例如：帮我规划杭州一天的行程，喜欢美食和公园">
+          <button class="btn btn-primary" :disabled="thinking" @click="send()">发送</button>
+        </div>
+      </div>
+    </div>
+  </script>
+
+  <!-- ============ 收藏 ============ -->
+  <script type="text/x-template" id="tpl-favorites">
+    <div>
+      <div class="section-title"><span class="dot"></span>我的收藏</div>
+      <div v-if="!store.user" class="card"><div class="empty"><div class="big">🔒</div>请先登录 / 注册以查看收藏</div></div>
+      <template v-else>
+        <h3 class="soft">❤️ 收藏的兴趣点</h3>
+        <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))">
+          <div class="card" v-for="p in fav.pois" :key="p.id">
+            <div class="row spread"><b>{{ p.name }}</b><span class="tag cat">{{ catName(p.category) }}</span></div>
+            <div class="muted" style="font-size:12px;margin-top:6px">{{ p.address }}</div>
+          </div>
+        </div>
+        <div class="empty" v-if="!fav.pois.length">还没有收藏的兴趣点</div>
+
+        <h3 class="soft" style="margin-top:20px">🧭 我的行程</h3>
+        <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr))">
+          <div class="card" v-for="r in fav.routes" :key="r.id">
+            <div class="row spread"><b>{{ r.title }}</b><button class="fav-btn" @click="delRoute(r.id)">🗑️</button></div>
+            <div class="muted" style="font-size:12px;margin:6px 0">{{ r.plan.steps.length }} 站 · {{ r.plan.totalDistanceKm }}km · ¥{{ Math.round(r.plan.totalCost) }}</div>
+            <div class="soft" style="font-size:12px">{{ r.plan.steps.map(s => s.poi.name).join(' → ') }}</div>
+          </div>
+        </div>
+        <div class="empty" v-if="!fav.routes.length">还没有保存的行程</div>
+      </template>
+    </div>
+  </script>
+
+  <!-- ============ 个人中心 ============ -->
+  <script type="text/x-template" id="tpl-profile">
+    <div>
+      <div class="section-title"><span class="dot"></span>个人中心</div>
+      <div class="card" style="max-width:540px" v-if="store.user">
+        <div class="row" style="margin-bottom:16px">
+          <div class="avatar" style="width:48px;height:48px;font-size:20px">{{ initial }}</div>
+          <div><b style="font-size:18px">{{ store.user.username }}</b><div class="muted" style="font-size:13px">{{ store.user.email || '演示账号' }}</div></div>
+        </div>
+        <div class="field"><label>默认出行偏好</label>
+          <div class="seg">
+            <span class="tag" v-for="m in modes" :class="{on: prefs.transportModes.includes(m.v)}" @click="togglePref(m.v)">{{ m.t }}</span>
+          </div>
+        </div>
+        <div class="field"><label>兴趣标签</label>
+          <div class="seg">
+            <span class="tag" v-for="c in cats" :class="{on: prefs.interests.includes(c.v)}" @click="toggleInt(c.v)">{{ c.t }}</span>
+          </div>
+        </div>
+        <div class="field"><label>预算上限（元）</label><input class="input" type="number" v-model.number="prefs.maxBudget"></div>
+        <div class="field"><label>最大可接受距离（km）</label><input class="input" type="number" v-model.number="prefs.maxDistanceKm"></div>
+        <button class="btn btn-primary btn-block" :disabled="saving" @click="save">{{ saving ? '保存中…' : '保存偏好' }}</button>
+        <div class="banner info" v-if="saved" style="margin-top:12px">已保存 ✓</div>
+      </div>
+      <div class="card" v-else><div class="empty"><div class="big">🔒</div>请先登录 / 注册</div></div>
+    </div>
+  </script>
+
+  <!-- ============ 依赖与脚本 ============ -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@3.4.21/dist/vue.global.prod.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/demo-data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+# 生产环境配置示例（本文件不提交真实密钥，仅作模板）。
+# 实际部署时通过环境变量或 Docker/K8s Secret 注入以下变量，无需修改此文件。
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/urbantravel}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:changeme}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+
+ai:
+  enabled: ${AI_ENABLED:true}
+  api-base: ${AI_API_BASE}
+  api-key: ${AI_API_KEY}
+  model: ${AI_MODEL}

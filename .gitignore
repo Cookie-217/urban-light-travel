@@ -1,0 +1,15 @@
+# 忽略构建产物与本地配置（重点：.env 与环境相关的真实密钥绝不入库）
+target/
+node_modules/
+.idea/
+*.iml
+*.log
+
+# 本地环境变量（含真实密码 / API Key），被 .gitignore 忽略
+.env
+*.local
+application-prod.yml
+
+# 系统文件
+.DS_Store
+Thumbs.db

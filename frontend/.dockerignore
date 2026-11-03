@@ -1,0 +1,6 @@
+# 前端镜像仅打包静态资源；排除版本控制与依赖目录
+.git
+node_modules/
+.dist/
+*.log
+.env

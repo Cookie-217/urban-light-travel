@@ -1,0 +1,12 @@
+# 构建时排除：避免把 .git、本地构建产物、密钥打进镜像
+.git
+target/
+*.class
+*.jar
+.env
+*.local
+application-prod.yml
+**/application-prod.yml
+*.log
+.idea/
+*.iml

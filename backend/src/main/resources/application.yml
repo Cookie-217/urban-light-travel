@@ -1,0 +1,66 @@
+server:
+  port: ${SERVER_PORT:8080}
+  # 注意：所有控制器已自带 /api 前缀（如 /api/health、/api/auth），
+  # 不再设置 context-path，避免与控制器前缀叠加成 /api/api/... 导致 403/404。
+  # nginx 代理 location /api/ 使用无 trailing-slash 的 proxy_pass，会转发完整 URI /api/... 到本服务。
+
+spring:
+  application:
+    name: urban-light-travel
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    properties:
+      hibernate:
+        format_sql: false
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  datasource:
+    # 开发环境使用内嵌 H2；生产环境通过环境变量切换到 PostgreSQL（见 application-prod.yml）
+    url: ${DB_URL:jdbc:h2:mem:urbantravel;DB_CLOSE_DELAY=-1;MODE=PostgreSQL}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:""}
+    driver-class-name: ${DB_DRIVER:org.h2.Driver}
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+  api-docs:
+    path: /v3/api-docs
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+jwt:
+  # 生产环境务必通过环境变量 JWT_SECRET 注入强随机密钥，切勿提交真实密钥
+  secret: ${JWT_SECRET:dev-only-insecure-secret-change-me-please-1234567890}
+  expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+
+ai:
+  # 配置 OpenAI 兼容大模型接口；留空则启用内置规则兜底 Agent
+  enabled: ${AI_ENABLED:false}
+  api-base: ${AI_API_BASE:https://api.openai.com/v1}
+  api-key: ${AI_API_KEY:}
+  model: ${AI_MODEL:gpt-4o-mini}
+  temperature: ${AI_TEMPERATURE:0.7}
+  timeout-ms: ${AI_TIMEOUT_MS:20000}
+
+app:
+  weather-enabled: ${WEATHER_ENABLED:true}
+  default-city: ${DEFAULT_CITY:杭州}
