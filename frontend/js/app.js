@@ -17,6 +17,24 @@
   });
 
   function authHeader() { return store.token ? { Authorization: 'Bearer ' + store.token } : {}; }
+
+  /* ---------------- POI 真实场景图（维基百科官方缩略图） ---------------- */
+  const WIKI_CACHE = {};            // id -> url（已确认有图）
+  const imgOf = reactive({});       // id -> url（响应式，驱动视图更新）
+  function loadWikiImage(poi) {
+    if (!poi || !poi.wiki || WIKI_CACHE[poi.id] === null) return; // null=已知无图
+    if (WIKI_CACHE[poi.id]) { imgOf[poi.id] = WIKI_CACHE[poi.id]; return; }
+    WIKI_CACHE[poi.id] = true;      // 标记请求中，避免重复
+    fetch('https://zh.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(poi.wiki))
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        const u = d && (d.originalimage && d.originalimage.source || d.thumbnail && d.thumbnail.source);
+        if (u) { WIKI_CACHE[poi.id] = u; imgOf[poi.id] = u; }
+        else { WIKI_CACHE[poi.id] = null; }
+      })
+      .catch(() => { WIKI_CACHE[poi.id] = null; });
+  }
+  function imgFor(id) { return imgOf[id] || ''; }
   async function apiFetch(path, opts) {
     opts = opts || {};
     const res = await fetch(API + path, Object.assign({
@@ -78,14 +96,17 @@
     return ({ park: '🌳', food: '🍜', culture: '🏛️', shopping: '🛍️', nature: '⛰️', night: '🌃', transit: '🚉' })[cat] || '📍';
   }
   function makeIcon(cat) {
+    const color = ({ park: '#0fae8e', food: '#ff6b5e', culture: '#8b5cf6', shopping: '#f5a623', nature: '#2bb3c0', night: '#6a7bff', transit: '#94a3b8' })[cat] || '#0fae8e';
+    const emo = iconFor(cat);
     return L.divIcon({
-      className: 'poi-pin', html: '<div style="font-size:22px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.3))">' + iconFor(cat) + '</div>',
-      iconSize: [26, 26], iconAnchor: [13, 13]
+      className: 'poi-pin',
+      html: '<div style="width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:' + color + ';box-shadow:0 3px 8px rgba(0,0,0,.35);display:grid;place-items:center;border:2px solid #fff"><span style="transform:rotate(45deg);font-size:15px">' + emo + '</span></div>',
+      iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -28]
     });
   }
   function initMap(elId, center, zoom) {
     const m = L.map(elId, { zoomControl: true }).setView(center, zoom || 12);
-    L.tileLayer(CFG.MAP_TILES, { attribution: CFG.MAP_ATTR, subdomains: 'abcd', maxZoom: 19 }).addTo(m);
+    L.tileLayer(CFG.MAP_TILES, { attribution: CFG.MAP_ATTR, subdomains: 'abc', maxZoom: 19 }).addTo(m);
     setTimeout(() => m.invalidateSize(), 60);
     return m;
   }
@@ -93,7 +114,9 @@
     const group = L.featureGroup().addTo(map);
     pois.forEach(p => {
       const mk = L.marker([p.lat, p.lng], { icon: makeIcon(p.category) }).addTo(group);
-      mk.bindPopup('<b>' + p.name + '</b><br>' + (DEMO.CAT_NAME[p.category] || p.category) + ' · ★' + p.rating);
+      const img = WIKI_CACHE[p.id] && typeof WIKI_CACHE[p.id] === 'string'
+        ? '<img src="' + WIKI_CACHE[p.id] + '" style="width:100%;height:120px;object-fit:cover;border-radius:8px;margin:6px 0" onerror="this.style.display=\'none\'">' : '';
+      mk.bindPopup('<div style="width:200px"><b>' + p.name + '</b><br><span style="color:#0b8f76;font-weight:600">' + (DEMO.CAT_NAME[p.category] || p.category) + '</span> · ★' + p.rating + img + '<div style="font-size:12px;color:#8aa0a8;margin-top:4px">' + (p.address || '') + '</div></div>');
       if (onPick) mk.on('click', () => onPick(p));
     });
     return group;
@@ -153,15 +176,17 @@
         try { list = await apiFetch('/pois' + (this.city ? '?city=' + encodeURIComponent(this.city) : '')); store.demoMode = false; }
         catch (e) { list = DEMO.POIS.filter(p => !this.city || p.city === this.city); store.demoMode = true; }
         this.pois = list;
+        list.forEach(p => loadWikiImage(p));
         await nextTick();
-        const center = this.city && DEMO.CENTERS[this.city] ? DEMO.CENTERS[this.city] : [30.27, 115];
+        const center = this.city && DEMO.CENTERS[this.city] ? DEMO.CENTERS[this.city] : [35, 108];
         if (!this.map) this.map = initMap('map', center, this.city ? 12 : 4);
         else this.map.setView(center, this.city ? 12 : 4);
         if (this.markers) this.map.removeLayer(this.markers);
         this.markers = renderPoiMarkers(this.map, this.pois, p => this.focusPoi(p));
       },
       focusPoi(p) { if (this.map) { this.map.setView([p.lat, p.lng], 15); } },
-      catName, modeName, iconFor,
+      catName, modeName, iconFor, imgFor,
+      onImgError(id) { imgOf[id] = ''; },
       isFav(poiId) { return isFavPoi(poiId); },
       toggleFav(p) { toggleFavPoi(p); },
       go(v) { store.view = v; }

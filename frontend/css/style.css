@@ -136,14 +136,17 @@ button { font-family: inherit; cursor: pointer; }
 #plan-map { width: 100%; height: 460px; border-radius: var(--radius); box-shadow: var(--shadow); z-index: 1; }
 .discover-grid { display: grid; grid-template-columns: 1.25fr 1fr; gap: 18px; align-items: start; }
 .poi-list { max-height: 460px; overflow: auto; padding-right: 4px; }
-.poi-item { display: flex; gap: 12px; padding: 12px; border-radius: 14px; border: 1px solid var(--line); margin-bottom: 10px; background: var(--surface); transition: .15s; cursor: pointer; }
+.poi-item { display: flex; gap: 12px; padding: 10px; border-radius: 16px; border: 1px solid var(--line); margin-bottom: 10px; background: var(--surface); transition: .15s; cursor: pointer; }
 .poi-item:hover { border-color: var(--primary); box-shadow: var(--shadow); transform: translateY(-1px); }
-.poi-thumb { width: 56px; height: 56px; border-radius: 12px; display: grid; place-items: center; font-size: 26px; background: var(--primary-soft); flex: none; }
+.poi-thumb { width: 76px; height: 76px; border-radius: 14px; overflow: hidden; display: grid; place-items: center; font-size: 32px; background: linear-gradient(135deg, var(--primary-soft), #d9f0ea); flex: none; position: relative; box-shadow: inset 0 0 0 1px rgba(0,0,0,.03); }
+.poi-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.poi-emoji { filter: drop-shadow(0 2px 3px rgba(0,0,0,.12)); }
 .poi-name { font-weight: 700; font-size: 15px; }
-.poi-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.poi-meta { font-size: 12px; color: var(--muted); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .poi-cat { font-size: 11px; font-weight: 700; color: var(--primary-d); }
 .stars { color: var(--gold); font-size: 13px; }
-.fav-btn { margin-left: auto; border: none; background: none; font-size: 18px; color: var(--muted); }
+.fav-btn { margin-left: auto; border: none; background: none; font-size: 18px; color: var(--muted); transition: .15s; }
+.fav-btn:hover { transform: scale(1.15); }
 .fav-btn.on { color: var(--accent); }
 
 /* ---------- 路线结果 ---------- */

@@ -5,7 +5,7 @@
   const api = params.get('api');
   window.APP_CONFIG = {
     API_BASE: api || '/api',
-    MAP_TILES: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-    MAP_ATTR: '© OpenStreetMap contributors © CARTO'
+    MAP_TILES: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    MAP_ATTR: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> 贡献者'
   };
 })();

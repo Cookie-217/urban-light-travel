@@ -102,8 +102,11 @@
           </div>
           <div class="poi-list">
             <div class="poi-item" v-for="p in pois" :key="p.id" @click="focusPoi(p)">
-              <div class="poi-thumb">{{ iconFor(p.category) }}</div>
-              <div style="flex:1">
+              <div class="poi-thumb">
+                <img v-if="imgFor(p.id)" :src="imgFor(p.id)" :alt="p.name" loading="lazy" @error="onImgError(p.id)" />
+                <span v-else class="poi-emoji">{{ iconFor(p.category) }}</span>
+              </div>
+              <div style="flex:1;min-width:0">
                 <div class="row spread">
                   <span class="poi-name">{{ p.name }}</span>
                   <button class="fav-btn" :class="{on: isFav(p.id)}" @click.stop="toggleFav(p)">{{ isFav(p.id) ? '❤️' : '🤍' }}</button>
