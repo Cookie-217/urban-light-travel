@@ -26,6 +26,7 @@ import java.util.regex.Pattern;
 public class AiAgentService {
 
     private final RecommendationService recommendationService;
+    private final CityCenters cityCenters;
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -37,6 +38,7 @@ public class AiAgentService {
     private final int timeoutMs;
 
     public AiAgentService(RecommendationService recommendationService,
+                          CityCenters cityCenters,
                           @Value("${ai.enabled:false}") boolean enabled,
                           @Value("${ai.api-base}") String apiBase,
                           @Value("${ai.api-key}") String apiKey,
@@ -44,6 +46,7 @@ public class AiAgentService {
                           @Value("${ai.temperature:0.7}") double temperature,
                           @Value("${ai.timeout-ms:20000}") int timeoutMs) {
         this.recommendationService = recommendationService;
+        this.cityCenters = cityCenters;
         this.enabled = enabled;
         this.apiBase = apiBase;
         this.apiKey = apiKey;
@@ -91,7 +94,7 @@ public class AiAgentService {
         String[] keys = {"规划", "推荐", "路线", "行程", "去玩", "去哪", "一日游", "游玩", "攻略", "怎么玩", "怎么走", "溜达"};
         for (String k : keys) if (msg.contains(k)) return true;
         // 含城市名 + 时间/天数 也视为规划
-        if (CityCenters.contains(firstCity(msg)) && (msg.contains("小时") || msg.contains("天") || msg.contains("半天")))
+        if (cityCenters.contains(firstCity(msg)) && (msg.contains("小时") || msg.contains("天") || msg.contains("半天")))
             return true;
         return false;
     }
@@ -105,7 +108,7 @@ public class AiAgentService {
         String city = firstCity(msg);
         r.city = city;
 
-        double[] center = CityCenters.get(city);
+        double[] center = cityCenters.get(city);
         r.originLat = center[0];
         r.originLng = center[1];
 
@@ -142,7 +145,7 @@ public class AiAgentService {
     }
 
     private String firstCity(String msg) {
-        for (String c : new String[]{"杭州","北京","上海","成都","深圳","广州","西安","南京","重庆","武汉"}) {
+        for (String c : cityCenters.cityNames()) {
             if (msg.contains(c)) return c;
         }
         return null;

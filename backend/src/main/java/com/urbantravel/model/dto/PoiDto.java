@@ -14,6 +14,8 @@ public class PoiDto {
     public String city;
     public String openHours;
     public String description;
+    public String wiki;
+    public String province;
 
     public PoiDto() {}
 
@@ -24,6 +26,7 @@ public class PoiDto {
         d.rating = p.getRating(); d.priceLevel = p.getPriceLevel(); d.tags = p.getTags();
         d.avgDurationMin = p.getAvgDurationMin(); d.city = p.getCity();
         d.openHours = p.getOpenHours(); d.description = p.getDescription();
+        d.wiki = p.getWiki(); d.province = p.getProvince();
         return d;
     }
 }

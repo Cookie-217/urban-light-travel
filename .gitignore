@@ -14,6 +14,9 @@ application-prod.yml
 .DS_Store
 Thumbs.db
 
+# 构建产物（可执行的胖 jar 不入库，部署由 CI / Render 构建）
+*.jar
+
 # 按需求：README.md 不推送到 GitHub（本地保留仅供查阅）
 README.md
 

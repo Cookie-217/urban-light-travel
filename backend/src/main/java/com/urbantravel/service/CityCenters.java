@@ -1,33 +1,57 @@
 package com.urbantravel.service;
 
-import java.util.HashMap;
+import com.urbantravel.data.UnifiedData;
+import org.springframework.stereotype.Component;
+
+import javax.annotation.PostConstruct;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
-/** 主要城市中心点坐标，供 AI 聊天在未指定起点时作为默认出行原点 */
+/**
+ * 主要城市中心点坐标，供 AI 聊天在未指定起点时作为默认出行原点。
+ * 数据来自统一数据源 pois.json（与前端同源），覆盖全国 69 个城市。
+ */
+@Component
 public class CityCenters {
-    private static final Map<String, double[]> CENTERS = new HashMap<>();
-    static {
-        CENTERS.put("杭州", new double[]{30.2741, 120.1551});
-        CENTERS.put("北京", new double[]{39.9042, 116.4074});
-        CENTERS.put("上海", new double[]{31.2304, 121.4737});
-        CENTERS.put("成都", new double[]{30.5728, 104.0668});
-        CENTERS.put("深圳", new double[]{22.5431, 114.0579});
-        CENTERS.put("广州", new double[]{23.1291, 113.2644});
-        CENTERS.put("西安", new double[]{34.3416, 108.9398});
-        CENTERS.put("南京", new double[]{32.0603, 118.7969});
-        CENTERS.put("重庆", new double[]{29.5630, 106.5516});
-        CENTERS.put("武汉", new double[]{30.5928, 114.3055});
+
+    private static final String FALLBACK = "杭州";
+
+    private final UnifiedData unifiedData;
+    private final Map<String, double[]> centers = new LinkedHashMap<>();
+    private final List<String> cityNames = new ArrayList<>();
+
+    public CityCenters(UnifiedData unifiedData) {
+        this.unifiedData = unifiedData;
     }
 
-    public static double[] get(String city) {
-        if (city == null) return CENTERS.get("杭州");
-        for (Map.Entry<String, double[]> e : CENTERS.entrySet()) {
-            if (city.contains(e.getKey()) || e.getKey().contains(city)) return e.getValue();
+    @PostConstruct
+    public void init() {
+        centers.clear();
+        cityNames.clear();
+        for (Map.Entry<String, double[]> e : unifiedData.getCityCenters().entrySet()) {
+            centers.put(e.getKey(), e.getValue());
+            cityNames.add(e.getKey());
         }
-        return CENTERS.get("杭州");
+        if (!centers.containsKey(FALLBACK)) centers.put(FALLBACK, new double[]{30.2741, 120.1551});
     }
 
-    public static boolean contains(String city) {
-        return city != null && CENTERS.containsKey(city);
+    /** 返回全部城市名（用于 AI 意图识别中「从消息抽取城市」） */
+    public List<String> cityNames() { return cityNames; }
+
+    public boolean contains(String city) {
+        return city != null && centers.containsKey(city);
+    }
+
+    /** 精确匹配优先；否则做子串模糊匹配；都没有则返回默认城市（杭州）中心点 [lat,lng] */
+    public double[] get(String city) {
+        if (city != null && centers.containsKey(city)) return centers.get(city);
+        if (city != null) {
+            for (Map.Entry<String, double[]> e : centers.entrySet()) {
+                if (city.contains(e.getKey()) || e.getKey().contains(city)) return e.getValue();
+            }
+        }
+        return centers.get(FALLBACK);
     }
 }

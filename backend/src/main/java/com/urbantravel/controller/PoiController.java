@@ -78,5 +78,7 @@ public class PoiController {
         if (d.city != null) p.setCity(d.city);
         if (d.openHours != null) p.setOpenHours(d.openHours);
         if (d.description != null) p.setDescription(d.description);
+        if (d.wiki != null) p.setWiki(d.wiki);
+        if (d.province != null) p.setProvince(d.province);
     }
 }

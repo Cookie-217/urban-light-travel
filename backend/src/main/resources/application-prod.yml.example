@@ -1,27 +1,40 @@
-# 生产环境配置示例（本文件不提交真实密钥，仅作模板）。
-# 实际部署时通过环境变量或 Docker/K8s Secret 注入以下变量，无需修改此文件。
+# 生产（prod）环境配置示例
+#
+# 复制为 application-prod.yml 后使用（application-prod.yml 已被 .gitignore 忽略，不会入库；切勿在其中写入真实密钥）：
+#   cp backend/src/main/resources/application-prod.yml.example backend/src/main/resources/application-prod.yml
+#   mvn spring-boot:run -Dspring-boot.run.profiles=prod
+#
+# 设计目标：prod 默认使用 H2 文件型数据库（零配置、零费用），所有密钥通过环境变量注入。
+# application.yml 中所有配置项均支持 ${ENV:default} 覆盖，因此下述值均可被环境变量再次覆盖（见 render.yaml）。
+
 spring:
-  config:
-    activate:
-      on-profile: prod
-  datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/urbantravel}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:changeme}
-    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: validate
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+      ddl-auto: update
+  h2:
+    console:
+      enabled: false   # 生产环境关闭 H2 控制台
+  datasource:
+    # H2 文件型：数据落盘到 ./urbantravel.mv.db，无需安装任何数据库
+    url: ${DB_URL:jdbc:h2:file:./urbantravel;AUTO_SERVER=TRUE;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:""}
+    driver-class-name: ${DB_DRIVER:org.h2.Driver}
 
+server:
+  port: ${SERVER_PORT:8080}
+
+# 以下密钥务必通过环境变量注入，示例仅为占位，请替换为真实强随机值
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:CHANGE_ME_to_a_long_random_secret_at_least_32_chars}
   expiration-ms: ${JWT_EXPIRATION_MS:86400000}
 
 ai:
-  enabled: ${AI_ENABLED:true}
-  api-base: ${AI_API_BASE}
-  api-key: ${AI_API_KEY}
-  model: ${AI_MODEL}
+  enabled: ${AI_ENABLED:false}
+  api-base: ${AI_API_BASE:https://api.openai.com/v1}
+  api-key: ${AI_API_KEY:}
+  model: ${AI_MODEL:gpt-4o-mini}
+
+app:
+  weather-enabled: ${WEATHER_ENABLED:true}
+  default-city: ${DEFAULT_CITY:杭州}

@@ -48,6 +48,14 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
+        <!-- Common Annotations (javax.annotation.PostConstruct/PreDestroy)：JDK 11+ 已从 JDK 中移除，
+             显式引入以保证在 JDK 11 及以上编译通过；在 JDK 8 下同样兼容。 -->
+        <dependency>
+            <groupId>javax.annotation</groupId>
+            <artifactId>jsr250-api</artifactId>
+            <version>1.0</version>
+        </dependency>
+
         <!-- Database: H2 for dev, PostgreSQL for prod -->
         <dependency>
             <groupId>com.h2database</groupId>

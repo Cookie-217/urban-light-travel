@@ -52,10 +52,23 @@ public class Poi {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    /** 维基百科精确词条名（用于前端实时拉取首图），可能为空 */
+    @Column(length = 128)
+    private String wiki;
+
+    /** 所属省级行政区（与全国数据源保持一致，如「浙江省」「北京市」） */
+    @Column(length = 64)
+    private String province;
+
     public Poi() {}
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public String getWiki() { return wiki; }
+    public void setWiki(String wiki) { this.wiki = wiki; }
+    public String getProvince() { return province; }
+    public void setProvince(String province) { this.province = province; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
     public String getCategory() { return category; }

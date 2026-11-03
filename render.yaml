@@ -1,0 +1,49 @@
+# Render 一键部署配置（免费层 Web Service）
+# 部署步骤：
+#   1) 在 Render 关联本仓库，或使用此 render.yaml 新建 Blueprint / Web Service；
+#   2) 在 Render 控制台把 JWT_SECRET 改成你自己的强随机串（见下方注释）；
+#   3) 构建完成后会得到 https://<service>.onrender.com 这样的后端地址；
+#   4) 前端（GitHub Pages）访问时加上 ?api=https://<service>.onrender.com 即可连上后端。
+#
+# 说明：默认 prod 使用 H2 文件型数据库（零配置、零费用），所有密钥通过环境变量注入，不写在代码里。
+# 注意：Render 免费层文件系统为临时存储，重启/重新部署后数据会重置，DataSeeder 会自动重新写入全国示例数据。
+
+services:
+  - type: web
+    name: urban-light-travel
+    runtime: java
+    plan: free
+    branch: main
+    rootDir: backend
+    buildCommand: mvn clean package -DskipTests
+    startCommand: java -jar target/urban-light-travel.jar
+    healthCheckPath: /api/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      # H2 文件型数据库：零配置零费用。文件落在服务工作目录，首次启动自动建表并写入示例数据
+      - key: DB_URL
+        value: jdbc:h2:file:./urbantravel;AUTO_SERVER=TRUE;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL
+      - key: DB_USERNAME
+        value: sa
+      - key: DB_PASSWORD
+        value: ""
+      - key: DB_DRIVER
+        value: org.h2.Driver
+      # ⚠️ 请务必在 Render 控制台把下面的值替换为自己的强随机密钥（至少 32 位）
+      - key: JWT_SECRET
+        value: CHANGE_ME_to_a_long_random_secret_at_least_32_chars
+      - key: JWT_EXPIRATION_MS
+        value: "86400000"
+      # 大模型（可选）：留空则使用内置规则兜底 Agent，无需任何密钥即可运行
+      - key: AI_ENABLED
+        value: "false"
+      - key: AI_API_BASE
+        value: https://api.openai.com/v1
+      - key: AI_API_KEY
+        value: ""
+      - key: AI_MODEL
+        value: gpt-4o-mini
+      # 天气（可选，默认开启；无密钥时自动降级）
+      - key: WEATHER_ENABLED
+        value: "true"

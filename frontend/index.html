@@ -40,11 +40,12 @@
       </header>
 
       <main class="app-shell">
-        <div class="banner info" v-if="store.demoMode">
-          🧪 <b>演示模式</b>：未连接到后端，当前使用内置示例数据与离线推荐 / AI 逻辑。部署后端并通过 <code>?api=</code> 参数连接即可启用完整功能（真实账号、云收藏、大模型助手）。
-        </div>
         <component :is="store.view"></component>
       </main>
+
+      <div class="offline-badge" v-if="store.demoMode" title="未连接到后端，当前使用内置离线示例数据。部署后端并通过 ?api= 参数连接即可启用完整功能（真实账号、云收藏、大模型助手）。">
+        🗺️ 离线示例数据
+      </div>
 
       <footer class="footer">
         基于 Java 的城市轻出行路线推荐系统 · Spring Boot + Vue 3 · 前后端分离 · 响应式适配<br/>
@@ -95,15 +96,25 @@
         <div>
           <div class="row spread" style="margin-bottom:10px">
             <strong>兴趣点</strong>
-            <select class="select" style="width:auto" v-model="city" @change="load">
-              <option value="">全部城市</option>
-              <option v-for="c in cities" :value="c">{{ c }}</option>
-            </select>
+            <div class="region-picks">
+              <select class="select" style="width:auto" v-model="province" @change="onProvince">
+                <option value="">全部省份</option>
+                <option v-for="p in provinceNames" :value="p">{{ p }}</option>
+              </select>
+              <select class="select" style="width:auto" v-model="city" @change="load">
+                <option value="">全部城市</option>
+                <option v-for="c in cityOptions" :value="c">{{ c }}</option>
+              </select>
+            </div>
           </div>
           <div class="poi-list">
             <div class="poi-item" v-for="p in pois" :key="p.id" @click="focusPoi(p)">
               <div class="poi-thumb">
-                <img :src="imgFor(p.id)" :alt="p.name" loading="lazy" @error="onImgError(p.id)" />
+                <img v-if="imgFor(p.id)" :src="imgFor(p.id)" :alt="p.name" loading="lazy" @error="onImgError(p.id)" />
+                <div v-else class="poi-photo-placeholder" :style="phStyle(p.category)">
+                  <span class="ph-emoji">{{ iconFor(p.category) }}</span>
+                  <span class="ph-name">{{ p.name }}</span>
+                </div>
               </div>
               <div style="flex:1;min-width:0">
                 <div class="row spread">
@@ -278,6 +289,7 @@
   <!-- ============ 依赖与脚本 ============ -->
   <script src="https://cdn.jsdelivr.net/npm/vue@3.4.21/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.js"></script>
   <script src="js/config.js"></script>
   <script src="js/demo-data.js"></script>
   <script src="js/app.js"></script>
