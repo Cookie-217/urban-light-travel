@@ -16,3 +16,6 @@ Thumbs.db
 
 # 按需求：README.md 不推送到 GitHub（本地保留仅供查阅）
 README.md
+
+# 本地项目数据 / 记忆（不入库）
+.workbuddy/
