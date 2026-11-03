@@ -64,3 +64,38 @@ ai:
 app:
   weather-enabled: ${WEATHER_ENABLED:true}
   default-city: ${DEFAULT_CITY:杭州}
+
+# ---- prod 环境（随仓库提交，零配置零费用）：默认使用 H2 文件型数据库 ----
+# 真实 application-prod.yml 被 .gitignore 忽略（可能含 PostgreSQL 等生产密钥），不会入库。
+# 若用户自行提供 application-prod.yml，则该文件优先级更高、会覆盖本段；
+# 若未提供（如 Render 免费层一键部署），则本段即为 prod 默认配置：H2 文件库，启动即用。
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  jpa:
+    hibernate:
+      ddl-auto: update
+  h2:
+    console:
+      enabled: false
+  datasource:
+    url: ${DB_URL:jdbc:h2:file:./urbantravel;AUTO_SERVER=TRUE;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:""}
+    driver-class-name: ${DB_DRIVER:org.h2.Driver}
+
+jwt:
+  secret: ${JWT_SECRET:prod-only-insecure-secret-change-me-please-32chars}
+  expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+
+ai:
+  enabled: ${AI_ENABLED:false}
+  api-base: ${AI_API_BASE:https://api.openai.com/v1}
+  api-key: ${AI_API_KEY:}
+  model: ${AI_MODEL:gpt-4o-mini}
+
+app:
+  weather-enabled: ${WEATHER_ENABLED:true}
+  default-city: ${DEFAULT_CITY:杭州}
