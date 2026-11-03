@@ -13,3 +13,6 @@ application-prod.yml
 # 系统文件
 .DS_Store
 Thumbs.db
+
+# 按需求：README.md 不推送到 GitHub（本地保留仅供查阅）
+README.md
